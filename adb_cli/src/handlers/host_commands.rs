@@ -41,23 +41,35 @@ pub fn handle_host_commands(server_command: ServerCommand<HostCommand>) -> Resul
         }
         HostCommand::Connect { address, qrcode } => {
             if qrcode {
-                // If address is provided, use it; otherwise, use a default or autodetect
+                // If address is provided, use it; otherwise, try to autodetect
                 let (ip, port) = match address {
                     Some(addr) => (addr.ip().clone(), addr.port()),
                     None => {
-                        // Try to get the first available device from the server
                         let devices = adb_server.devices()?;
-                        if let Some(device) = devices.first() {
-                            // Try to parse the device identifier as SocketAddrV4
-                            if let Ok(addr) = device.identifier.parse::<std::net::SocketAddrV4>() {
-                                (addr.ip().clone(), addr.port())
-                            } else {
-                                log::error!("Could not parse device identifier as address: {}", device.identifier);
-                                return Err(adb_client::RustADBError::ADBRequestFailed("No valid device address found for QR code generation.".to_string()));
-                            }
-                        } else {
-                            log::error!("No devices found for QR code generation.");
+                        if devices.is_empty() {
+                            println!("No devices detected by ADB server.\n");
+                            println!("Troubleshooting:");
+                            println!("- Ensure your device is connected and authorized.");
+                            println!("- Enable wireless debugging or TCP/IP mode on your device (see Developer Options).\n");
+                            println!("- You can manually specify an IP address using: adb_cli host connect --qrcode <ADDRESS>\n");
                             return Err(adb_client::RustADBError::ADBRequestFailed("No devices found for QR code generation.".to_string()));
+                        }
+                        println!("Detected devices:");
+                        let mut found_ip = None;
+                        for device in &devices {
+                            println!("- {}", device.identifier);
+                            if let Ok(addr) = device.identifier.parse::<std::net::SocketAddrV4>() {
+                                found_ip = Some((addr.ip().clone(), addr.port()));
+                                break;
+                            }
+                        }
+                        if let Some((ip, port)) = found_ip {
+                            (ip, port)
+                        } else {
+                            println!("\nNo device with IP:port found.\n");
+                            println!("To use wireless debugging, run 'adb tcpip 5555' and reconnect your device over Wi-Fi.\n");
+                            println!("You can also manually specify an IP address using: adb_cli host connect --qrcode <ADDRESS>\n");
+                            return Err(adb_client::RustADBError::ADBRequestFailed("No valid device address found for QR code generation.".to_string()));
                         }
                     }
                 };
