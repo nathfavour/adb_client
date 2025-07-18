@@ -16,7 +16,9 @@ use adb_termios::ADBTermios;
 
 use anyhow::Result;
 use clap::Parser;
-use handlers::{handle_emulator_commands, handle_host_commands, handle_local_commands};
+use handlers::{
+    handle_emulator_commands, handle_host_commands, handle_local_commands, handle_pair_commands,
+};
 use models::{DeviceCommands, LocalCommand, MainCommand, Opts};
 use std::collections::HashMap;
 use std::fs::File;
@@ -98,6 +100,9 @@ fn main() -> Result<()> {
             }
 
             return Ok(service.shutdown()?);
+        }
+        MainCommand::Pair(pair_command) => {
+            return handle_pair_commands(pair_command);
         }
     };
 
