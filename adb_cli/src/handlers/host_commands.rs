@@ -45,8 +45,20 @@ pub fn handle_host_commands(server_command: ServerCommand<HostCommand>) -> Resul
                 let (ip, port) = match address {
                     Some(addr) => (addr.ip().clone(), addr.port()),
                     None => {
-                        // Default to localhost:5555, or prompt user for correct info
-                        (std::net::Ipv4Addr::new(127, 0, 0, 1), 5555)
+                        // Try to get the first available device from the server
+                        let devices = adb_server.devices()?;
+                        if let Some(device) = devices.first() {
+                            // Try to parse the device identifier as SocketAddrV4
+                            if let Ok(addr) = device.identifier.parse::<std::net::SocketAddrV4>() {
+                                (addr.ip().clone(), addr.port())
+                            } else {
+                                log::error!("Could not parse device identifier as address: {}", device.identifier);
+                                return Err(adb_client::RustADBError::ADBRequestFailed("No valid device address found for QR code generation.".to_string()));
+                            }
+                        } else {
+                            log::error!("No devices found for QR code generation.");
+                            return Err(adb_client::RustADBError::ADBRequestFailed("No devices found for QR code generation.".to_string()));
+                        }
                     }
                 };
                 let qr_content = format!("adb://{}:{}", ip, port);
