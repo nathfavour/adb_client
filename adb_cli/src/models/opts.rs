@@ -2,7 +2,7 @@ use std::net::SocketAddrV4;
 
 use clap::{Parser, Subcommand};
 
-use super::{EmulatorCommand, HostCommand, LocalCommand, TcpCommand, UsbCommand, PairCommand};
+use super::{EmulatorCommand, HostCommand, LocalCommand, TcpCommand, UsbCommand};
 
 #[derive(Debug, Parser)]
 #[clap(about, version, author)]
@@ -27,8 +27,6 @@ pub enum MainCommand {
     Tcp(TcpCommand),
     /// MDNS discovery related commands
     Mdns,
-    /// Pair with a device
-    Pair(PairCommand),
 }
 
 #[derive(Debug, Parser)]
