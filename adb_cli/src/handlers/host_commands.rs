@@ -41,15 +41,15 @@ pub fn handle_host_commands(server_command: ServerCommand<HostCommand>) -> Resul
         }
         HostCommand::Connect { address, qrcode } => {
             if qrcode {
-                // Generate QR code with actual connection info
-                let ip = address.ip();
-                let port = address.port();
-                
-                // The QR code format for ADB wireless debugging is typically:
-                // "adb-<ip>-<port>-<random_session_id>"
-                // or a simpler format that Android recognizes
+                // If address is provided, use it; otherwise, use a default or autodetect
+                let (ip, port) = match address {
+                    Some(addr) => (addr.ip().clone(), addr.port()),
+                    None => {
+                        // Default to localhost:5555, or prompt user for correct info
+                        (std::net::Ipv4Addr::new(127, 0, 0, 1), 5555)
+                    }
+                };
                 let qr_content = format!("adb://{}:{}", ip, port);
-
                 match qrcode::QrCode::new(qr_content.as_bytes()) {
                     Ok(code) => {
                         let image = code.render::<char>().quiet_zone(false).module_dimensions(2, 1).build();
@@ -62,8 +62,12 @@ pub fn handle_host_commands(server_command: ServerCommand<HostCommand>) -> Resul
                     }
                 }
             } else {
-                adb_server.connect_device(address)?;
-                log::info!("Connected to {address}");
+                if let Some(addr) = address {
+                    adb_server.connect_device(addr)?;
+                    log::info!("Connected to {addr}");
+                } else {
+                    log::error!("No address provided for connection.");
+                }
             }
         }
         HostCommand::Disconnect { address } => {

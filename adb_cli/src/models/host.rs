@@ -26,7 +26,9 @@ pub enum HostCommand {
     Pair { address: SocketAddrV4, code: String },
     /// Connect device over WI-FI
     Connect {
-        address: SocketAddrV4,
+        /// Device address (optional if --qrcode is set)
+        #[clap(required_unless_present = "qrcode")]
+        address: Option<SocketAddrV4>,
         /// Print a QR code for wireless debugging connection
         #[clap(long = "qrcode")]
         qrcode: bool,
