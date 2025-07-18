@@ -25,7 +25,12 @@ pub enum HostCommand {
     /// Pair device with a given code
     Pair { address: SocketAddrV4, code: String },
     /// Connect device over WI-FI
-    Connect { address: SocketAddrV4 },
+    Connect {
+        address: SocketAddrV4,
+        /// Print a QR code for wireless debugging connection
+        #[clap(long = "qrcode")]
+        qrcode: bool,
+    },
     /// Disconnect device over WI-FI
     Disconnect { address: SocketAddrV4 },
     /// MDNS services

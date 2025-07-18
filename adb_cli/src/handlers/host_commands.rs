@@ -39,9 +39,32 @@ pub fn handle_host_commands(server_command: ServerCommand<HostCommand>) -> Resul
             adb_server.pair(address, code)?;
             log::info!("Paired device {address}");
         }
-        HostCommand::Connect { address } => {
-            adb_server.connect_device(address)?;
-            log::info!("Connected to {address}");
+        HostCommand::Connect { address, qrcode } => {
+            if qrcode {
+                // Generate QR code with actual connection info
+                let ip = address.ip();
+                let port = address.port();
+                
+                // The QR code format for ADB wireless debugging is typically:
+                // "adb-<ip>-<port>-<random_session_id>"
+                // or a simpler format that Android recognizes
+                let qr_content = format!("adb://{}:{}", ip, port);
+
+                match qrcode::QrCode::new(qr_content.as_bytes()) {
+                    Ok(code) => {
+                        let image = code.render::<char>().quiet_zone(false).module_dimensions(2, 1).build();
+                        println!("Scan this QR code with your Android device (Developer Options > Wireless Debugging > Pair with QR code):\n");
+                        println!("{}", image);
+                        println!("\nConnection: {}", qr_content);
+                    }
+                    Err(e) => {
+                        log::error!("Failed to generate QR code: {e}");
+                    }
+                }
+            } else {
+                adb_server.connect_device(address)?;
+                log::info!("Connected to {address}");
+            }
         }
         HostCommand::Disconnect { address } => {
             adb_server.disconnect_device(address)?;
@@ -76,6 +99,10 @@ pub fn handle_host_commands(server_command: ServerCommand<HostCommand>) -> Resul
             log::info!("waiting for device to be connected...");
             adb_server.wait_for_device(WaitForDeviceState::Device, transport)?;
         }
+    }
+
+    Ok(())
+}
     }
 
     Ok(())
